@@ -1,6 +1,7 @@
 import os
 import logging
 import pandas as pd
+import nibabel as nib
 from typing import Dict, Any
 GIFT_TEMPLATE_PATH = "/computation/gift/GroupICAT/icatb/icatb_templates"
 
@@ -19,9 +20,18 @@ def validate_run_input(in_files: list, data_path: str, local_parameters: Dict[st
         # filesystem
         if len(in_files) == 0:
             raise(ValueError("No nifti files were found in data directory."))
+        last_shape = None
         for filename in in_files:
             if not os.path.exists(filename):
                 raise(ValueError("Input nifti %s does not exist" % filename))
+            vol = nib.load(filename)
+            if last_shape is None:
+                last_shape = vol.shape
+                continue
+            else:
+                if not vol.shape != last_shape:
+                    raise(ValueError("Detected differing volume sizes. Found volume in file %s with size %s different that last shape %s" % (filename, str(vol.shape), str(last_shape))))
+                last_shape = vol.shape
         # refFiles
         refFiles = local_parameters["refFiles"]
         if not os.path.exists(refFiles) and "neuromark" in refFiles.lower():

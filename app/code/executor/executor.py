@@ -8,7 +8,7 @@ from nvflare.apis.fl_context import FLContext
 from nvflare.apis.signal import Signal
 from utils.utils import get_data_directory_path, get_output_directory_path
 from .perform_scica import gift_gica
-
+from .html_report import HTML_OUTPUT
 from .validate_run_input import validate_run_input
 
 # Constants
@@ -108,7 +108,10 @@ class ScicaExecutor(Executor):
                                perfType=perfType,
                                dummy_scans=dummy_scans,
                                prefix=prefix)
-        
+
+        # write out index.html
+        with open(os.path.join(out_dir, "index.html")) as out_file:
+            file.write(HTML_OUTPUT)
 
         # Prepare the Shareable object to send the result to other components
 

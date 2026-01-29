@@ -2,6 +2,7 @@ import logging
 import os
 import json
 import glob
+import shutil
 from nvflare.apis.executor import Executor
 from nvflare.apis.shareable import Shareable
 from nvflare.apis.fl_context import FLContext
@@ -13,6 +14,7 @@ from .validate_run_input import validate_run_input
 
 # Constants
 GIFT_TEMPLATE_PATH = "/computation/gift/GroupICAT/icatb/icatb_templates"
+OUTPUT_HTML_NAME = "index.html"
 
 # Task names
 TASK_NAME_PERFORM_COMPUTATION = "perform_scica"
@@ -108,8 +110,14 @@ class ScicaExecutor(Executor):
                                perfType=perfType,
                                dummy_scans=dummy_scans,
                                prefix=prefix)
-        
 
+        # Copy the output result HTML to the base result directory, and name it index.html
+        expected_html_path = os.path.join(out_dir, 
+                                          "{prefix}_gica_results/icatb_gica_html_report.html".format(prefix=prefix))
+        final_html_path = os.path.join(out_dir, OUTPUT_HTML_NAME)
+        if os.path.exists(expected_html_path):
+            shutil.copyfile(expected_html_path, final_html_path)
+    
         # Prepare the Shareable object to send the result to other components
 
         outgoing_shareable = Shareable()

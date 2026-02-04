@@ -3,6 +3,9 @@ import os
 import json
 import glob
 import shutil
+import re
+import posixpath
+
 from nvflare.apis.executor import Executor
 from nvflare.apis.shareable import Shareable
 from nvflare.apis.fl_context import FLContext
@@ -20,13 +23,14 @@ OUTPUT_HTML_NAME = "index.html"
 TASK_NAME_PERFORM_COMPUTATION = "perform_scica"
 TASK_NAME_SAVE_AGGREGATE_RESULTS = "save_aggregate_scica_results"
 
+
 class ScicaExecutor(Executor):
     def __init__(self):
         """
         Initialize the SrrExecutor. This constructor sets up the logger.
         """
         logging.info("ScicaExecutor initialized")
-    
+
     def execute(
         self,
         task_name: str,
@@ -36,13 +40,13 @@ class ScicaExecutor(Executor):
     ) -> Shareable:
         """
         Main execution entry point. Routes tasks to specific methods based on the task name.
-        
+
         Parameters:
             task_name: Name of the task to perform.
             shareable: Shareable object containing data for the task.
             fl_ctx: Federated learning context.
             abort_signal: Signal object to handle task abortion.
-            
+
         Returns:
             A Shareable object containing results of the task.
         """
@@ -53,7 +57,7 @@ class ScicaExecutor(Executor):
         else:
             # Raise an error if the task name is unknown
             raise ValueError(f"Unknown task name: {task_name}")
-        
+
     def _do_task_perform_scica(
         self,
         shareable: Shareable,
@@ -77,19 +81,19 @@ class ScicaExecutor(Executor):
         local_parameters = json.load(open(local_parameters_path, "r"))
         computation_parameters = fl_ctx.get_peer_context().get_prop("COMPUTATION_PARAMETERS")
         log_path = os.path.join(get_output_directory_path(fl_ctx), "validation_log.txt")
-        
+
         # Validate the run inputs (covariates, dependent data, and parameters)
         is_valid = validate_run_input(in_files, data_directory, local_parameters, log_path)
-        #is_valid = True
+        # is_valid = True
         if not is_valid:
             # Halt execution if validation fails
             raise ValueError(f"Invalid run input. Check validation log at {log_path}")
-        
+
         # Extract options for cleaner pass to function
         refFiles = local_parameters["refFiles"]
         if not os.path.exists(refFiles) and "neuromark" in refFiles.lower():
-            if '.nii' not in refFiles:
-                refFiles = refFiles + '.nii'
+            if ".nii" not in refFiles:
+                refFiles = refFiles + ".nii"
             refFiles = os.path.join(GIFT_TEMPLATE_PATH, refFiles)
         preproc_type = local_parameters["preproc_type"]
         scaleType = local_parameters["scaleType"]
@@ -98,39 +102,53 @@ class ScicaExecutor(Executor):
         perfType = local_parameters["perfType"]
         dummy_scans = local_parameters["dummy_scans"]
         prefix = local_parameters["prefix"]
-        
+
         # Perform GICA using Nipype functions
-        result = gift_gica(in_files=in_files, 
-                               refFiles=refFiles, 
-                               out_dir=out_dir,
-                               preproc_type=preproc_type, 
-                               scaleType=scaleType,
-                               mask=mask,
-                               TR=TR,
-                               perfType=perfType,
-                               dummy_scans=dummy_scans,
-                               prefix=prefix)
+        result = gift_gica(
+            in_files=in_files,
+            refFiles=refFiles,
+            out_dir=out_dir,
+            preproc_type=preproc_type,
+            scaleType=scaleType,
+            mask=mask,
+            TR=TR,
+            perfType=perfType,
+            dummy_scans=dummy_scans,
+            prefix=prefix,
+        )
 
         # Copy the output result HTML to the base result directory, and name it index.html
-        expected_html_path = os.path.join(out_dir, 
-                                          "{prefix}_gica_results/icatb_gica_html_report.html".format(prefix=prefix))
+        expected_html_path = os.path.join(
+            out_dir, "{prefix}_gica_results/icatb_gica_html_report.html".format(prefix=prefix)
+        )
         final_html_path = os.path.join(out_dir, OUTPUT_HTML_NAME)
         if os.path.exists(expected_html_path):
             shutil.copyfile(expected_html_path, final_html_path)
 
-        # hotfix to replace paths
+        # Hotfix to replace PNG src paths so they resolve correctly from index.html
         with open(final_html_path, "r", encoding="utf-8") as f:
             html = f.read()
-        
-        html = re.sub(r'src="([^"]+\.png)"',
-                      lambda m: f'src="{os.path.join("{prefix}_gica_results".format(prefix=prefix), os.path.basename(m.group(1)))}"',
-                      html)
-        
+
+        # Match: src="x.png", src = "x.png", src='x.PNG', etc. (allow whitespace around '=')
+        src_pattern = re.compile(r'''(\bsrc\s*=\s*)(["'])([^"']+?\.png)\2''', re.IGNORECASE)
+
+        report_dir = f"{prefix}_gica_results"  # folder containing the images next to index.html
+
+        def _rewrite_src(m):
+            src_prefix = m.group(1)  # 'src = ' including original spacing
+            quote = m.group(2)       # ' or "
+            orig = m.group(3)        # original value inside src
+
+            # Use only the filename and point it to the report_dir, with web-safe slashes
+            new_src = posixpath.join(report_dir, posixpath.basename(orig))
+            return f"{src_prefix}{quote}{new_src}{quote}"
+
+        html = src_pattern.sub(_rewrite_src, html)
+
         with open(final_html_path, "w", encoding="utf-8") as f:
             f.write(html)
-    
-        # Prepare the Shareable object to send the result to other components
 
+        # Prepare the Shareable object to send the result to other components
         outgoing_shareable = Shareable()
         # For now, there is nothing to send to the aggregator
         # In the future, we may want to send local files to compute a mean map
@@ -142,7 +160,7 @@ class ScicaExecutor(Executor):
         self,
         shareable: Shareable,
         fl_ctx: FLContext,
-        abort_signal: Signal
+        abort_signal: Signal,
     ) -> Shareable:
         """
         For SCICA this currently does nothing; however, I am leaving this function
@@ -153,8 +171,5 @@ class ScicaExecutor(Executor):
         """
         # Retrieve the global regression result from the Shareable object
         result = shareable.get("result")
-        
-        
-        
-        return Shareable()
 
+        return Shareable()

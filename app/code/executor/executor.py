@@ -117,6 +117,17 @@ class ScicaExecutor(Executor):
         final_html_path = os.path.join(out_dir, OUTPUT_HTML_NAME)
         if os.path.exists(expected_html_path):
             shutil.copyfile(expected_html_path, final_html_path)
+
+        # hotfix to replace paths
+        with open(index_path, "r", encoding="utf-8") as f:
+            html = f.read()
+        
+        html = re.sub(r'src="([^"]+\.png)"',
+                      lambda m: f'src="{os.path.join("{prefix}_gica_results".format(prefix=prefix), os.path.basename(m.group(1)))}"',
+                      html)
+        
+        with open(index_path, "w", encoding="utf-8") as f:
+            f.write(html)
     
         # Prepare the Shareable object to send the result to other components
 

@@ -77,14 +77,14 @@ run on individual participants without sharing information between sites.
 #### Data Format Specification
 
 The computation requires at minimum one valid NIFTI (.nii or .nii.gz) file located in the TOP LEVEL of the input folder, as well
-as a parameters.json file with the local parameters for the computation. 
+as a local_parameters.json file with the local parameters for the computation. 
 
 NIFTI files must contain a valid functional MRI image, i.e. which has 4 dimensions (X,Y,Z,Time) and which is 
 readable using the GIFT toolbox. Corrupt or invalid MRI images will cause an error to be thrown in GIFT.
 
 In the future, computations may require BIDS formatting of input data; however, currently that is not required. 
 
-Currently, `parameters.json` is considered a local file, so each site can specify slightly different parameters if they desire; however, in most cases, these will be uniform across sites. The allowed parameters and types are as follows:
+Currently, `local_parameters.json` is considered a local file, so each site can specify slightly different parameters if they desire; however, in most cases, these will be uniform across sites. The allowed parameters and types are as follows:
 
 | Variable Name | Type | Description | Allowed Options | Default |
 | ------ | ------ | ------ | ------ | ------ | 

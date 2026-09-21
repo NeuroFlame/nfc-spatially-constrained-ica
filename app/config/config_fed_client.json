@@ -2,17 +2,20 @@
   "format_version": 2,
   "executors": [
     {
-      "tasks": [
-        "perform_scica",
-        "save_aggregate_scica_results"
-      ],
+      "tasks": [],
       "executor": {
-        "path": "executor.executor.ScicaExecutor",
+        "path": "runtime.executor.RuntimeExecutor",
         "args": {}
       }
     }
   ],
   "task_result_filters": [],
   "task_data_filters": [],
-  "components": []
+  "components": [
+    {
+      "id": "artifact_transfer",
+      "path": "framework.artifact_transfer.ArtifactTransfer",
+      "args": {}
+    }
+  ]
 }

@@ -1,0 +1,17 @@
+{
+  "manifestVersion": 1,
+  "computation": {
+    "version": "0.1.0"
+  },
+  "compatibility": {
+    "computationApiVersion": "0.1.0",
+    "boilerplateVersion": "0.1.0"
+  },
+  "image": {
+    "title": "spatially_constrained_ica",
+    "repository": "dylanrmartin/computations",
+    "floatingTag": "spatially_constrained_ica",
+    "tagPrefix": "spatially_constrained_ica-",
+    "source": "https://github.com/NeuroFlame/nfc-spatially-constrained-ica"
+  }
+}

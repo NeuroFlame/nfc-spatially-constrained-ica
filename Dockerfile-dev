@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM python:3.11-bookworm
 
 # Install MCR
 RUN export MCR_CACHE_VERBOSE=true
@@ -13,7 +13,7 @@ RUN apt-get update -y \
  && mkdir /computation/groupica_v4.0.4.11 \
  && rm -rf /tmp_mcr \
  && wget -P /computation/groupica_v4.0.4.11/ https://trends-public-website-fileshare.s3.amazonaws.com/public_website_files/software/gift/software/bids/v4.0.5.2M2022b/groupica
-RUN apt-get install -y libstdc++*-dev 
+RUN apt-get install -y libstdc++*-dev
 WORKDIR /computation
 COPY ./GroupICATv4.0b_standalone_sep_10_2019 /computation/GroupICATv4.0b_standalone_sep_10_2019
 RUN cp /computation/groupica_v4.0.4.11/groupica /computation/GroupICATv4.0b_standalone_sep_10_2019
@@ -29,13 +29,8 @@ ENV MATLAB_VER=R2022b
 ENV GICA_VER=v4.0.5.2
 ENV GICA_INSTALL_DIR=/computation/groupica_v4.0.4.11
 
-
- # Upgrade pip and setuptools
 RUN python3 -m pip install -U pip
 RUN python3 -m pip install -U setuptools
-
-
-# Set working directory
 WORKDIR /workspace/
 
 # Copy the requirements.txt file
@@ -43,23 +38,12 @@ COPY ./requirements.txt /workspace/requirements.txt
 
 # Install dependencies from requirements.txt
 RUN python3 -m pip install -r /workspace/requirements.txt
-# Clone GIFT repo
+
+# Clone GIFT repo and patch nipype with its GIFT interface
 RUN git clone -b brad_fix_nipype https://github.com/trendscenter/gift.git /computation/gift
+RUN cp -r /computation/gift/GroupICAT/icatb/nipype-0.10.0/nipype/interfaces/gift /usr/local/lib/python3.11/site-packages/nipype/interfaces/gift
 
-RUN cp -r /computation/gift/GroupICAT/icatb/nipype-0.10.0/nipype/interfaces/gift /usr/local/lib/python3.8/site-packages/nipype/interfaces/gift
-
-
-# Copy the rest of the application files
-COPY ./app/ /workspace/app/
-COPY ./system/entry_central.py /workspace/system/entry_central.py
-COPY ./system/entry_edge.py /workspace/system/entry_edge.py
-COPY ./system/provision/ /workspace/system/provision/
-COPY ./system/entry_provision.py /workspace/system/entry_provision.py
-
-# Set environment variables
 ENV PYTHONPATH=/workspace/app/code/
-#ENV DATA_DIR=/workspace/data/
-#ENV OUTPUT_DIR=/workspace/output/
-#ENV PARAMETERS_FILE_PATH=/workspace/runKit/parameters.json
+ENV NVFLARE_POC_WORKSPACE=/workspace/poc-workspace
 
 CMD ["/bin/bash"]

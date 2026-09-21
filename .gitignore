@@ -3,3 +3,8 @@ __pycache__/
 simulator_workspace/
 test_output/simulate_job/
 poc-workspace/
+.venv/
+.ruff_cache/
+job/
+startupKits/
+*.swp

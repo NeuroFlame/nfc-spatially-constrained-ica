@@ -1,12 +1,21 @@
+"""Reference, non-federated re-implementation of the site/global regression math.
+
+Not used by the computation itself; kept as a plain-Python worked example of
+what the federated local/global regression steps compute.
+"""
+
+import json
+import os
+
 import numpy as np
 import pandas as pd
+import statsmodels.api as sm
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
-import statsmodels.api as sm
-import os
-import json
+
 
 def perform_ridge_regression(covariates_path, data_path):
+    """Fit a per-site ridge/OLS regression for every dependent variable in data_path."""
     # Load data
     covariates = pd.read_csv(covariates_path)
     data = pd.read_csv(data_path)
@@ -47,19 +56,21 @@ def perform_ridge_regression(covariates_path, data_path):
             "Degrees of Freedom": degrees_of_freedom,
             "Sum of Squared Errors": sse,
             "Input Data": X,
-            "Target Data": y
+            "Target Data": y,
         }
 
     return results
 
+
 def calculate_global_values(site_results):
+    """Pool every site's per-site regression inputs and refit globally."""
     global_results = {}
-    
+
     for dependent_var in site_results[next(iter(site_results))].keys():
         combined_X = []
         combined_y = []
 
-        for site, results in site_results.items():
+        for results in site_results.values():
             stats = results[dependent_var]
 
             # Append the input data (X) and target data (y) from each site
@@ -70,7 +81,9 @@ def calculate_global_values(site_results):
         combined_y = np.array(combined_y)
 
         if combined_X.shape[0] != combined_y.shape[0]:
-            raise ValueError(f"Inconsistent data lengths for {dependent_var}: X shape {combined_X.shape[0]}, y length {combined_y.shape[0]}")
+            raise ValueError(
+                f"Inconsistent data lengths for {dependent_var}: X shape {combined_X.shape[0]}, y length {combined_y.shape[0]}"
+            )
 
         # Fit Ridge regression model
         ridge_model = Ridge(alpha=1.0)
@@ -94,30 +107,40 @@ def calculate_global_values(site_results):
             "P-Values": p_values.tolist(),
             "R-Squared": r_squared,
             "Degrees of Freedom": degrees_of_freedom,
-            "Sum of Squared Errors": sse
+            "Sum of Squared Errors": sse,
         }
 
     return global_results
 
+
 def save_results_to_json(global_results, site_results):
+    """Write global and per-site regression results to JSON files."""
     # Save global results
-    with open('global_results.json', 'w') as f:
+    with open("global_results.json", "w") as f:
         json.dump(global_results, f, indent=4)
-    
+
     # Save local results for each site
     for site_id, results in site_results.items():
-        with open(f'{site_id}_results.json', 'w') as f:
+        with open(f"{site_id}_results.json", "w") as f:
             # Remove Input Data and Target Data from results before saving
-            clean_results = {k: {key: val for key, val in v.items() if key not in ["Input Data", "Target Data"]} for k, v in results.items()}
+            clean_results = {
+                k: {
+                    key: val
+                    for key, val in v.items()
+                    if key not in ["Input Data", "Target Data"]
+                }
+                for k, v in results.items()
+            }
             json.dump(clean_results, f, indent=4)
 
+
 # Example usage for multiple sites
-sites = ['site1', 'site2']
+sites = ["site1", "site2"]
 site_results = {}
 
 for site in sites:
-    covariates_path = os.path.join(f'./test_data/{site}/covariates.csv')
-    data_path = os.path.join(f'./test_data/{site}/data.csv')
+    covariates_path = os.path.join(f"./test_data/{site}/covariates.csv")
+    data_path = os.path.join(f"./test_data/{site}/data.csv")
     site_results[site] = perform_ridge_regression(covariates_path, data_path)
 
 # Calculate global values

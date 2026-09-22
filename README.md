@@ -120,6 +120,22 @@ It is assumed that each site has their own set of parameters and will agree on a
 }
 ```
 
+#### Running this computation
+To locally run this computation, clone this repo and run:
+
+- _./run_local_simulation.sh site1,site2,site3_
+
+This builds the development image, creates the job folder, and runs the NVFlare
+simulator in one step. Pass `--no-build` to skip rebuilding the image on
+repeat runs (e.g. `./run_local_simulation.sh site1,site2 --no-build`).
+
+See [MIGRATION_NOTES.md](MIGRATION_NOTES.md) for what changed when this
+computation was migrated to the current `computation-nvflare-boilerplate`
+architecture, and how that migration was verified against the prior
+implementation.
+
+Output for each site lands under `test_output/simulate_job/<site>/`.
+
 # TODO
 
 * Discuss requirement of BIDS formatting for input data and change computation to use a BIDS parser for more robust data parsing.

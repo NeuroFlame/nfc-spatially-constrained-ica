@@ -94,18 +94,51 @@ whole migration and is the one most directly verified below.
   - `aggregator.remote.log` on the migrated side confirms `site_results` was
     correctly keyed by display name (`site1`/`site2`/`site3`), matching the
     intent of the superseded provisioning patch above.
-- **`make lint-author` / `format-author` / `compile` / `test`**: all pass.
-  (Repo-wide `make lint` also flags pre-existing, unrelated issues in
-  `docs/non_federated_regression.py` — out of scope for this migration, not
-  touched.)
-- **Image validation**: `python scripts/publish_computation_image.py
-  --no-push` builds `Dockerfile-prod` and confirms the image carries all
-  required OCI/NeuroFLAME labels.
+- **Repo-wide `make check`** (lint, format-check, compile, unit tests): all
+  pass. (Fixed a handful of pre-existing ruff findings in
+  `docs/non_federated_regression.py` along the way — that file predates this
+  migration and was never linted before, since there was no CI in this repo
+  until now.)
+- **Image validation**: `python scripts/publish_computation_image.py --local`
+  builds `Dockerfile-prod`, tags it as `coinstacteam/nfc-spatially-constrained-ica`
+  (the `image` section's `repository`/`floatingTag`, matching the platform's
+  already-registered computation entry and the convention used by every
+  other locally-tagged sibling computation image), and confirms it carries
+  all required OCI/NeuroFLAME labels.
 - **`migrate_computation.py --check`**: reports only `Dockerfile-dev` and
   `Dockerfile-prod` differing from the checked-out boilerplate release —
   expected, since those two carry the MATLAB Runtime/GIFT install this
   computation needs on top of the generic template.
+- **Real NeuroFLAME platform, end to end**: ran a full local platform stack
+  (`centralApi`, `centralFederatedClient`, `fileServer`, MongoDB, two
+  `neuroflame edge start` clients as two separate identities/sites) via
+  `cliAppClient`, not just the NVFlare simulator — created a consortium,
+  pointed it at this computation and the locally-built image, pointed each
+  site's edge client at `test_data_five_subjects/site1` and `/site2`, and ran
+  it to `Complete` with real Docker containers on both sides.
+  - Site1's real-platform-run `index.html` is **byte-identical** to that same
+    site's output from the simulator-based comparison above — the same
+    computation, reached through a completely different orchestration path
+    (central API → `centralFederatedClient` → provisioning → NVFlare central
+    server → edge clients → participant containers), produced the exact same
+    result.
+  - `neuroflame edge list-results`/on-disk inspection confirms both
+    participants produced the full, correct output set.
 
-**Not directly measured**: an actual local NeuroFLAME platform stack
-(central API + edge sites), as opposed to the NVFlare simulator directly —
-only the simulator flow was exercised.
+### A boilerplate robustness note, not a computation bug
+
+The first several real-platform attempts failed with
+`nvflare.fuel.flare_api.api_spec.NoConnection: cannot connect to server for
+10.0 seconds`, from `system/entry_central.py`'s `new_secure_session(...)`
+call — a boilerplate-managed file, unmodified here. That call uses NVFlare's
+default 10-second connect timeout with no margin against how long the
+NVFlare server process itself takes to become admin-reachable after
+`start.sh` returns; on this dev machine (under load from the multiple Docker
+builds and GIFT/MATLAB runs this migration involved), server startup alone
+routinely consumed 8–9 of those 10 seconds. Temporarily raising the local
+copy to `timeout=60.0` made the run succeed immediately and repeatably; that
+diagnostic change was reverted before publishing (a managed file — it would
+be overwritten by the next migration regardless, and the fix belongs
+upstream in the boilerplate, not per-computation). Worth flagging to the
+`computation-nvflare-boilerplate` maintainers as a real, reproducible race
+under load, not specific to this computation.

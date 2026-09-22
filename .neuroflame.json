@@ -8,10 +8,10 @@
     "boilerplateVersion": "0.1.0"
   },
   "image": {
-    "title": "spatially_constrained_ica",
-    "repository": "dylanrmartin/computations",
-    "floatingTag": "spatially_constrained_ica",
-    "tagPrefix": "spatially_constrained_ica-",
+    "title": "nfc-spatially-constrained-ica",
+    "repository": "coinstacteam/nfc-spatially-constrained-ica",
+    "floatingTag": "latest",
+    "tagPrefix": "",
     "source": "https://github.com/NeuroFlame/nfc-spatially-constrained-ica"
   }
 }

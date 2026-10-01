@@ -1,3 +1,4 @@
+**Source code:** [https://github.com/NeuroFlame/nfc-spatially-constrained-ica](https://github.com/NeuroFlame/nfc-spatially-constrained-ica)
 
 ### Overview
 Spatially constrained ICA with NeuroMark utilizes a joint optimization for independence and adherence of spatial constraints to a given template, allowing for the identification of spatially independent components that align well with previously idenfitied networks.

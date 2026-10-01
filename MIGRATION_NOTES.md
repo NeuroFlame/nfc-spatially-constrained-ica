@@ -77,6 +77,12 @@ whole migration and is the one most directly verified below.
   migration script preserves as-is). It currently resolves to `1.11.0`. This
   is a pre-existing risk, not one introduced here — worth pinning once a
   known-good version is confirmed.
+- `app/config/config_fed_server.json` sets `heart_beat_timeout` to `86400`
+  (24 h) instead of the boilerplate's `600`, so sites are not dropped during
+  long-running GIFT runs. This was merged after the migration, so
+  `migrate_computation.py --check` now also reports `app/config` as
+  differing. `app/config` is migration-managed: the value is reset to `600`
+  by the next `--in-place` migration and has to be re-applied afterwards.
 
 ## Verification performed
 
